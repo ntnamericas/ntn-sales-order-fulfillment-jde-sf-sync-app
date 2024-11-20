@@ -82,7 +82,9 @@ output text/plain
     f5.DRKY,
     f6.IMDRAW, 
     f7.IBPRP1, 
-    f7.IBSRP4 
+    f7.IBSRP4,
+    f8.DRDL01 AS DRDLO1_FREIGHT,
+    f8.DRKY AS FREIGHT_DRKY
 FROM 
     TESTDTA.F4211 f1
 LEFT JOIN 
@@ -113,6 +115,11 @@ ON
     AND TRIM(f5.DRSY) = '40' 
     AND TRIM(f5.DRRT) = 'AT'
 LEFT JOIN 
+    TESTCTL.F0005 f8
+ON  TRIM(f8.DRKY) = TRIM(f1.SDFRTH)
+    AND TRIM(f8.DRSY) = '42' 
+    AND TRIM(f8.DRRT) = 'FR'
+LEFT JOIN 
     TESTDTA.F4101 f6 
 ON 
     TRIM(f6.IMLITM) = TRIM(f1.SDLITM)
@@ -123,8 +130,11 @@ ON
     AND TRIM(f7.IBLITM) = trim(F1.SDLITM)
 WHERE
     TRIM(f1.SDUPMJ) >= $(vars.jobRun.date)
-    AND TRIM(f1.SDTDAY) < $(vars.previousJobRun.time) AND 
-        trim(f1.SDKCOO) = '00010'"]]></ee:set-payload>
+    AND TRIM(f1.SDTDAY) < $(vars.previousJobRun.time) 
+	AND trim(f1.SDMCU) = '1801'
+    AND trim(f1.SDKCOO) = '00010' 
+    AND trim(f1.SDVR02) LIKE '%SA-%'
+    AND trim(f1.SDSHAN) IN ('30256','30257')"]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 		<db:select doc:id="f1ef1742-a7da-4869-bebc-6180c7f06ade" config-ref="Database_Config" doc:name="execute sql query" >
@@ -155,16 +165,16 @@ fun julianDateToNormalDate(julianDate) =
 ---
 payload map ((item, index) -> {
 Account_Name__c : trim(item.AXDC),
-Actual_Ship_Date__c :  julianDateToNormalDate(trim(item.SDADDJ))as Date default "",
+Actual_Ship_Date__c :  julianDateToNormalDate(trim(item.SDADDJ))as Date default null,
 BOL__c: trim(item.SDSHPN) as String default null ,
 Carrier__c : trim(item.SDCARS) default null ++ "-" ++ trim(item.ABALPH) default null,
 Company_Number__c: trim(item.SDKCOO)  ,
 Cost_when_parts_ship__c: (item.SDUNCS)/10000 default null,
 Customer_Part_Number__c : trim(item.IVCITM) ,
-Freight_Handling_Code_FRTH__c : trim(item.DRKY) default null ++ "-" ++ trim(item.DRDL01) default null,
+Freight_Handling_Code_FRTH__c : trim(item.FREIGHT_DRKY) default null ++ "-" ++ trim(item.DRDLO1_FREIGHT) default null,
 JDE_Account__c : trim(item.SDSHAN) ,
 JDE_Order_Type__c : trim(item.SDDCTO),
-Line__c : (trim(item.SDRLNU ) )default null ++ ":" ++ "(" ++ trim(item.SDDOCO) default null ++ "-" ++ ((trim(item.SDLNID) default null /1000)) ++ ")" default null,
+Line__c : (if (trim(item.SDVR02) contains  "SA") (((item.SDVR02) splitBy  "SA-" )[1])[0 to 7] else null)++ ":" ++ "(" ++ trim(item.SDDOCO) default null ++ "-" ++ ((trim(item.SDLNID) default null /1000)) ++ ")" default null,
 Line_Amount__c : trim(item.SDAEXP)/100 default null,
 Line_Price__c : trim(item.SDUPRC)/10000 default null ,
 NTN_Part__c  : trim(item.SDLITM) ,
@@ -175,18 +185,20 @@ Order_Line_Shipped_Qty__c  : trim(item.SDSOQS) as Number default null,
 StandardOrder__c   : if (trim(item.SDVR02) contains  "SA") (((item.SDVR02) splitBy  "SA-" )[1])[0 to 7] else "",
 PO__c     : trim(item.SDVR01),
 Product_Part__c  : trim(item.IMDRAW) default null ++ "-" ++ trim(item.IBPRP1) default null ++ "-" ++ trim(item.IBSRP4) default null ,
-Promise_Date__c  :  julianDateToNormalDate(trim(item.SDPPDJ))as Date default "",
+Promise_Date__c  :  julianDateToNormalDate(trim(item.SDPPDJ))as Date default null,
 Status__c       : trim(item.DRKY) default null ++ "-" ++ trim(item.DRDL01) default null,
 CurrencyIsoCode  : trim(item.SDCRCD) ,
-Name:   (trim(item.SDRLNU ) )default null ++ ":" ++ "(" ++ trim(item.SDDOCO) default null ++ "-" ++ ((trim(item.SDLNID)/1000)) default null ++ ")" default null
+Name:    (if (trim(item.SDVR02) contains  "SA") (((item.SDVR02) splitBy  "SA-" )[1])[0 to 7] else null) ++ ":" ++ "(" ++ trim(item.SDDOCO) default null ++ "-" ++ ((trim(item.SDLNID)/1000)) default null ++ ")" default null
 })]]></ee:set-payload>
 				</ee:message>
 			</ee:transform>
-		<logger level="INFO" doc:name="salesforce payload logger" doc:id="44a4a755-bdb8-4dd6-b4c3-ae3dad36b8de" message="#[payload]" />
-		<logger level="INFO" doc:name="Total Records Logger" doc:id="90d5848f-045f-48b2-9e6b-707e105abb8d" message="Total Records available: #[sizeOf(payload)]" />
-		<ee:transform doc:name="For Each Variable" doc:id="615020f5-b6af-4091-88b3-419c169d1f2b">
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+		<choice doc:name="Choice" doc:id="1df9bd52-7786-43a0-aaa7-69796e7e7704">
+			<when expression="#[sizeOf(payload)&gt;0]">
+				<logger level="INFO" doc:name="salesforce payload logger" doc:id="44a4a755-bdb8-4dd6-b4c3-ae3dad36b8de" message="#[payload]" />
+				<logger level="INFO" doc:name="Total Records Logger" doc:id="90d5848f-045f-48b2-9e6b-707e105abb8d" message="Total Records available: #[sizeOf(payload)]" />
+				<ee:transform doc:name="For Each Variable" doc:id="615020f5-b6af-4091-88b3-419c169d1f2b">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 (payload) filter ((item, index) -> !isEmpty(item."StandardOrder__c") )]]></ee:set-payload>
@@ -200,9 +212,9 @@ output application/json
 }]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
-		<logger level="INFO" doc:name="Distinct Records Logger" doc:id="04d0d8e2-274a-4d33-96d4-630f098ae2a9" message="Records available with StandardOrder: #[sizeOf(payload)]" />
-		<flow-ref doc:name="compositeResponseFlow" doc:id="40bd6854-3921-4896-8c59-115a603cb2c4" name="compositeResponseFlow"/>
-		<ee:transform doc:name="Response Payload" doc:id="4d8cc77e-60b2-4de5-a6c0-3322b319f27a">
+				<logger level="INFO" doc:name="Distinct Records Logger" doc:id="04d0d8e2-274a-4d33-96d4-630f098ae2a9" message="Records available with StandardOrder: #[sizeOf(payload)]" />
+				<flow-ref doc:name="compositeResponseFlow" doc:id="40bd6854-3921-4896-8c59-115a603cb2c4" name="compositeResponseFlow" />
+				<ee:transform doc:name="Response Payload" doc:id="4d8cc77e-60b2-4de5-a6c0-3322b319f27a">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -211,7 +223,12 @@ vars.FEPayload
 ]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<logger level="INFO" doc:name="End Logger" doc:id="3a230510-6368-43a5-a70b-1a4c057e5596" message='#[{"sales order fulfillment details end flow" : vars.FEPayload }]' />
+				<logger level="INFO" doc:name="End Logger" doc:id="3a230510-6368-43a5-a70b-1a4c057e5596" message='#[{"sales order fulfillment details end flow" : vars.FEPayload }]' />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="no input" doc:id="b948b8de-8556-483c-b214-a29210eb906f" message="no records are available to process" />
+			</otherwise>
+		</choice>
 	</sub-flow>
 	<flow name="compositeResponseFlow" doc:id="a99749ba-fa20-4fe5-9d48-e08c20082a92" >
 		<foreach doc:name="For Each" doc:id="4a23a808-ecf1-4e25-b375-3c51f75d6a49" collection="#[payload]" batchSize="2">
@@ -266,7 +283,7 @@ output application/json
    
     "CurrencyIsoCode": $.CurrencyIsoCode,
 
-    "Name": $.CurrencyIsoCode
+    "Name": $.Name
       }
     }]
     
