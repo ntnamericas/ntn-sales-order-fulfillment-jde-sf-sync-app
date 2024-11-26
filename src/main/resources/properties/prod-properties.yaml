@@ -7,9 +7,8 @@ app:
   env: ""
 
 salesforce:
-  userName: ""
-  consumerkey: ""
-  tokenUrl: ""
+  userName: "mulesoftintegration@ntnusa.com"
+  consumerkey: "3MVG9zlTNB8o8BA1T1gSt15tI0eCCfz2mZwvXlYeqAG5KoxwJdUTEkV3bZS9B5a4uMLPXa0f9WSU_7stONFky"
 
 database:
   host: ""

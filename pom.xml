@@ -14,7 +14,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
 		<app.runtime>4.5.1</app.runtime>
-		<mule.maven.plugin.version>4.0.0</mule.maven.plugin.version>
+		<mule.maven.plugin.version>4.3.0</mule.maven.plugin.version>
 	</properties>
 
 	<build>
@@ -87,6 +87,12 @@
 			<groupId>com.mulesoft.modules</groupId>
 			<artifactId>mule-secure-configuration-property-module</artifactId>
 			<version>1.2.7</version>
+			<classifier>mule-plugin</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.mule.modules</groupId>
+			<artifactId>mule-xml-module</artifactId>
+			<version>1.4.1</version>
 			<classifier>mule-plugin</classifier>
 		</dependency>
 	</dependencies>

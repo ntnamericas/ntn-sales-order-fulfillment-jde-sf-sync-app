@@ -1,24 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:salesforce-composite="http://www.mulesoft.org/schema/mule/salesforce-composite" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
-	xmlns:db="http://www.mulesoft.org/schema/mule/db"
-	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:xml-module="http://www.mulesoft.org/schema/mule/xml-module" xmlns:salesforce-composite="http://www.mulesoft.org/schema/mule/salesforce-composite"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
 http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
-http://www.mulesoft.org/schema/mule/salesforce-composite http://www.mulesoft.org/schema/mule/salesforce-composite/current/mule-salesforce-composite.xsd">
+http://www.mulesoft.org/schema/mule/salesforce-composite http://www.mulesoft.org/schema/mule/salesforce-composite/current/mule-salesforce-composite.xsd
+http://www.mulesoft.org/schema/mule/xml-module http://www.mulesoft.org/schema/mule/xml-module/current/mule-xml-module.xsd">
 	<flow name="sales_order_flow" doc:id="b11ca2f6-1918-4ebf-92e3-750e9f5f6942" >
 		<scheduler doc:name="Scheduler" doc:id="c8e69f58-c1c5-452e-b0c8-7669f9cf6751" >
 			<scheduling-strategy >
 				<fixed-frequency frequency="30" timeUnit="MINUTES"/>
 			</scheduling-strategy>
 		</scheduler>
-		<ee:transform doc:name="jobRun" doc:id="ed8a10d2-fe7f-4b5c-93c0-0d58642468cc" >
+		<ee:transform doc:name="jobRun" doc:id="ed8a10d2-fe7f-4b5c-93c0-0d58642468cc">
 			<ee:message />
-			<ee:variables >
-				<ee:set-variable variableName="jobRun" ><![CDATA[%dw 2.0
+			<ee:variables>
+				<ee:set-variable variableName="jobRun"><![CDATA[%dw 2.0
 import * from dw::core::Strings
 
 fun year(date) =
@@ -40,101 +41,19 @@ output application/json
 JulianDate(now())]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
-		<os:retrieve doc:id="6fc4f4c2-9ddf-4f29-9bbd-d42ecbe85864" key="previousJobRun" target="previousJobRun" doc:name="Retrieve :previousJobRun" >
-			<os:default-value ><![CDATA[#[vars.jobRun]]]></os:default-value>
+		<os:retrieve doc:id="6fc4f4c2-9ddf-4f29-9bbd-d42ecbe85864" key="previousJobRun" target="previousJobRun" doc:name="Retrieve :previousJobRun">
+			<os:default-value><![CDATA[#[vars.jobRun]]]></os:default-value>
 		</os:retrieve>
 		<flow-ref doc:name="Sales_order_Sub_Flow" doc:id="8e6c5f07-ae7e-41dc-aaba-235a06a40913" name="Sales_order_Sub_Flow" />
-		<os:store doc:id="20362e6d-0d13-4d26-b652-a7f594c07671" key="previousJobRun" doc:name="Store current job run details" >
-			<os:value ><![CDATA[#[vars.jobRun]]]></os:value>
+		<os:store doc:id="20362e6d-0d13-4d26-b652-a7f594c07671" key="previousJobRun" doc:name="Store current job run details">
+			<os:value><![CDATA[#[vars.jobRun]]]></os:value>
 		</os:store>
 	</flow>
 	<sub-flow name="Sales_order_Sub_Flow" doc:id="d81fe992-b1b1-44c9-a932-a248d0d8c60a" >
 		<logger level="INFO" doc:name="Start Logger" doc:id="7d4ccb22-5292-427a-9682-d01a1c859f84" message='"Sales Order Fulfillment flow started"'/>
 		<ee:transform doc:name="sql query" doc:id="79c17dfc-f864-4edc-ba32-9dce7e86c7b2" >
 			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
-output text/plain
----
-"SELECT 
-    f1.SDADDJ, 
-    f1.SDSHPN, 
-    f1.SDKCOO, 
-    f1.SDUNCS, 
-    f1.SDSHAN, 
-    f1.SDDCTO, 
-    f1.SDDOCO, 
-    f1.SDLNID, 
-    f1.SDAEXP, 
-    f1.SDUPRC, 
-    f1.SDLITM, 
-    f1.SDUORG, 
-    f1.SDSOQS, 
-    f1.SDVR02, 
-    f1.SDVR01, 
-    f1.SDPPDJ, 
-    f1.SDCRCD,
-    f1.SDRLNU,
-    f1.SDCARS,
-    f2.ABALPH, 
-    f3.AXDC, 
-    f4.IVCITM, 
-    f5.DRDL01,
-    f5.DRKY,
-    f6.IMDRAW, 
-    f7.IBPRP1, 
-    f7.IBSRP4,
-    f8.DRDL01 AS DRDLO1_FREIGHT,
-    f8.DRKY AS FREIGHT_DRKY
-FROM 
-    TESTDTA.F4211 f1
-LEFT JOIN 
-    TESTDTA.F0101 f2 
-ON 
-    TRIM(f2.ABAN8) = TRIM(f1.SDCARS)
-LEFT JOIN 
-    TESTDTA.F4780 f3 
-ON 
-    TRIM(f3.AXAN8) = TRIM(f1.SDSHAN) 
-    AND TRIM(f3.AXXRTS) = 'SF'
-LEFT JOIN 
-    TESTDTA.F4104 f4 
-ON 
-    TRIM(f4.IVLITM) = TRIM(f1.SDLITM) 
-    AND f4.IVXRT = 'C' 
-    AND TRIM(f4.IVEFTJ) <= $(vars.jobRun.date) 
-    AND TRIM(f4.IVEXDJ) >= $(vars.jobRun.date)
-LEFT JOIN 
-    TESTCTL.F0005 f5 
-ON 
-    TRIM(f5.DRKY) = 
-        (CASE 
-            WHEN (TRIM(f1.SDNXTR) = '999' OR TRIM(f1.SDNXTR) = '987' OR TRIM(f1.SDNXTR) = '902') 
-            THEN TRIM(f1.SDNXTR) 
-            ELSE TRIM(f1.SDLTTR) 
-        END)  
-    AND TRIM(f5.DRSY) = '40' 
-    AND TRIM(f5.DRRT) = 'AT'
-LEFT JOIN 
-    TESTCTL.F0005 f8
-ON  TRIM(f8.DRKY) = TRIM(f1.SDFRTH)
-    AND TRIM(f8.DRSY) = '42' 
-    AND TRIM(f8.DRRT) = 'FR'
-LEFT JOIN 
-    TESTDTA.F4101 f6 
-ON 
-    TRIM(f6.IMLITM) = TRIM(f1.SDLITM)
-LEFT JOIN 
-    TESTDTA.F4102 f7 
-ON 
-    TRIM(f7.IBMCU) = '1801' 
-    AND TRIM(f7.IBLITM) = trim(F1.SDLITM)
-WHERE
-    TRIM(f1.SDUPMJ) >= $(vars.jobRun.date)
-    AND TRIM(f1.SDTDAY) < $(vars.previousJobRun.time) 
-	AND trim(f1.SDMCU) = '1801'
-    AND trim(f1.SDKCOO) = '00010' 
-    AND trim(f1.SDVR02) LIKE '%SA-%'
-    AND trim(f1.SDSHAN) IN ('30256','30257')"]]></ee:set-payload>
+				<ee:set-payload resource="dwl/salesOrderQuery.dwl" />
 			</ee:message>
 		</ee:transform>
 		<db:select doc:id="f1ef1742-a7da-4869-bebc-6180c7f06ade" config-ref="Database_Config" doc:name="execute sql query" >
@@ -156,40 +75,7 @@ output application/json
 		</ee:transform>
 		<ee:transform doc:name="salesforce payload" doc:id="15c1f51d-9c58-47e8-b4e8-c97df75d751f">
 				<ee:message>
-					<ee:set-payload><![CDATA[%dw 2.0
-output application/json
-fun julianDateToNormalDate(julianDate) = 
-	(((19 + (julianDate[0] as Number))* 100) default "" 
-	+ (julianDate[1 to 2] as Number) default "" ++ julianDate[3 to 5] default "")
-	as Date {format: "yyyyDDD"} as Date {format:"yyyy-MM-dd"} default null
----
-payload map ((item, index) -> {
-Account_Name__c : trim(item.AXDC),
-Actual_Ship_Date__c :  julianDateToNormalDate(trim(item.SDADDJ))as Date default null,
-BOL__c: trim(item.SDSHPN) as String default null ,
-Carrier__c : trim(item.SDCARS) default null ++ "-" ++ trim(item.ABALPH) default null,
-Company_Number__c: trim(item.SDKCOO)  ,
-Cost_when_parts_ship__c: (item.SDUNCS)/10000 default null,
-Customer_Part_Number__c : trim(item.IVCITM) ,
-Freight_Handling_Code_FRTH__c : trim(item.FREIGHT_DRKY) default null ++ "-" ++ trim(item.DRDLO1_FREIGHT) default null,
-JDE_Account__c : trim(item.SDSHAN) ,
-JDE_Order_Type__c : trim(item.SDDCTO),
-Line__c : (if (trim(item.SDVR02) contains  "SA") (((item.SDVR02) splitBy  "SA-" )[1])[0 to 7] else null)++ ":" ++ "(" ++ trim(item.SDDOCO) default null ++ "-" ++ ((trim(item.SDLNID) default null /1000)) ++ ")" default null,
-Line_Amount__c : trim(item.SDAEXP)/100 default null,
-Line_Price__c : trim(item.SDUPRC)/10000 default null ,
-NTN_Part__c  : trim(item.SDLITM) ,
-Order__c   : trim(item.SDDOCO) as Number default null,
-Order_Line__c  : trim(item.SDLNID)/1000 as Number  default null,
-Order_Line_Qty__c  :trim(item.SDUORG) as Number default null,
-Order_Line_Shipped_Qty__c  : trim(item.SDSOQS) as Number default null,
-StandardOrder__c   : if (trim(item.SDVR02) contains  "SA") (((item.SDVR02) splitBy  "SA-" )[1])[0 to 7] else "",
-PO__c     : trim(item.SDVR01),
-Product_Part__c  : trim(item.IMDRAW) default null ++ "-" ++ trim(item.IBPRP1) default null ++ "-" ++ trim(item.IBSRP4) default null ,
-Promise_Date__c  :  julianDateToNormalDate(trim(item.SDPPDJ))as Date default null,
-Status__c       : trim(item.DRKY) default null ++ "-" ++ trim(item.DRDL01) default null,
-CurrencyIsoCode  : trim(item.SDCRCD) ,
-Name:    (if (trim(item.SDVR02) contains  "SA") (((item.SDVR02) splitBy  "SA-" )[1])[0 to 7] else null) ++ ":" ++ "(" ++ trim(item.SDDOCO) default null ++ "-" ++ ((trim(item.SDLNID)/1000)) default null ++ ")" default null
-})]]></ee:set-payload>
+				<ee:set-payload resource="dwl/salesOrderDetails.dwl" />
 				</ee:message>
 			</ee:transform>
 		<choice doc:name="Choice" doc:id="1df9bd52-7786-43a0-aaa7-69796e7e7704">
@@ -231,64 +117,29 @@ vars.FEPayload
 		</choice>
 	</sub-flow>
 	<flow name="compositeResponseFlow" doc:id="a99749ba-fa20-4fe5-9d48-e08c20082a92" >
-		<foreach doc:name="For Each" doc:id="4a23a808-ecf1-4e25-b375-3c51f75d6a49" collection="#[payload]" batchSize="2">
+		<foreach doc:name="For Each" doc:id="4a23a808-ecf1-4e25-b375-3c51f75d6a49" collection="#[payload]">
 			<logger level="INFO" doc:name="Logger" doc:id="fa1f1dfe-6080-454e-a0a1-0b6e74a51238" message='#[{"message" : "before going to sf",&#10;"payload": payload&#10;}]' />
+			<ee:transform doc:name="Transform Message" doc:id="8cc9dc1b-47ed-4c95-990b-5bbf797732e6" >
+				<ee:message >
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="Id" ><![CDATA[%dw 2.0
+output application/json
+var lineC = payload.Line__c as String
+---
+"select id from Sales_Order_Fulfillment__c where Line__c = '$(lineC)'"]]></ee:set-variable>
+					<ee:set-variable variableName="Line__c" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.Line__c as String]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<salesforce:query doc:name="Query" doc:id="c0162132-1c97-409f-8634-8d7a2fd17c03" target="salesforceId" config-ref="Salesforce_Config">
+				<salesforce:salesforce-query ><![CDATA[#[vars.Id]]]></salesforce:salesforce-query>
+			</salesforce:query>
 			<ee:transform doc:name="composite Request" doc:id="89243db4-a614-4546-8876-e6da2c19d597">
 				<ee:message>
-					<ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{ 
-  "compositeRequest": flatten(((payload map([
-    ({
-      "method": "GET",
-      "referenceId": "refAccount$($$)",
-      "url": "/services/data/v57.0/query/?q=SELECT id from Account where JDE_AddressNumber__c = $($.JDE_Account__c)"
-    }) if(!isEmpty($.JDE_Account__c)),
-    ({
-      "method": "GET",
-      "referenceId": "refOrder$($$)",
-      "url": "/services/data/v57.0/query/?q=SELECT id from Order where OrderNumber = '$($.StandardOrder__c)'"
-    } ) if(!isEmpty($.StandardOrder__c)),
-    {
-      "method": "POST",
-      "referenceId": "refUpdateSalesOrderDetails$($$)",
-      "url": "/services/data/v57.0/sobjects/Sales_Order_Fulfillment__c",
-      "body": {
-      	
-    "Account_Name__c": if(!isEmpty($.Account_Name__c))($.Account_Name__c) else if(!isEmpty("@{refAccount$($$).records[0].Id}"))"@{refAccount$($$).records[0].Id}" else "",
-    "Actual_Ship_Date__c": $.Actual_Ship_Date__c,
-    "BOL__c": $.BOL__c,
-    "Carrier__c": $.Carrier__c,
-    "Company_Number__c": $.Company_Number__c,
-    "Cost_when_parts_ship__c": $.Cost_when_parts_ship__c,
-    "Customer_Part_Number__c": $.Customer_Part_Number__c,
-    "Freight_Handling_Code_FRTH__c": $.Freight_Handling_Code_FRTH__c,
-    "JDE_Account__c": $.JDE_Account__c,
-    "JDE_Order_Type__c": $.JDE_Order_Type__c,
-    "Line__c": $.Line__c,
-    "Line_Amount__c": $.Line_Amount__c,
-    "Line_Price__c": $.Line_Price__c,
-    "NTN_Part__c":$.NTN_Part__c,
-    "Order__c": $.Order__c,
-    "Order_Line__c": $.Order_Line__c,
-    "Order_Line_Qty__c": $.Order_Line_Qty__c,
-    "Order_Line_Shipped_Qty__c": $.Order_Line_Shipped_Qty__c,
-    
-	"StandardOrder__c": if(!isEmpty($.StandardOrder__c))"@{refOrder$($$).records[0].Id}" else "",
-    "PO__c": $.PO__c,
-    "Product_Part__c": $.Product_Part__c ,
-    "Promise_Date__c": $.Promise_Date__c,
-    "Status__c": $.Status__c,
-   
-    "CurrencyIsoCode": $.CurrencyIsoCode,
-
-    "Name": $.Name
-      }
-    }]
-    
-  ))))
-}]]></ee:set-payload>
+					<ee:set-payload resource="dwl/salesCompositeRequest.dwl" />
 				</ee:message>
 			</ee:transform>
 			<salesforce-composite:execute-composite-request doc:id="e0e17c1f-a1d3-4904-afbe-5b41ea80e4d6" config-ref="Salesforce_Composite_Config" doc:name="Execute composite request">
@@ -302,13 +153,12 @@ output application/json
 					<ee:set-variable variableName="FEPayload"><![CDATA[%dw 2.0
 output application/json indent=false
 var salesOrderRef = payload.compositeResponse filter ((item) -> item.referenceId contains "refUpdateSalesOrderDetails") default ""
-var success = sizeOf(salesOrderRef.body.success filter ($)) default 0
-var failure = sizeOf(salesOrderRef.body.success filter (!$)) default 0
 ---
-{
-   "salesOrderTotalSuccessRecords" : success + (vars.FEPayload.salesOrderTotalSuccessRecords),
-   "salesOrderTotalFailureRecords" : failure + (vars.FEPayload.salesOrderTotalFailureRecords)
-}]]></ee:set-variable>
+if(salesOrderRef[0].httpStatusCode == 204)
+("updated record succefully with Line___c: " ++ (vars.Line__c)) 
+else 
+("Created record succefully with Line___c: " ++ (vars.Line__c))
+]]></ee:set-variable>
 				</ee:variables>
 			</ee:transform>
 								<logger level="INFO" doc:name="sf response" doc:id="ff1afc12-6a7d-4b79-9b74-4c0c2cb0c0f1" message="Counter No: #[vars.counter] SFResponse : #[vars.FEPayload]" />
