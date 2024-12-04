@@ -90,19 +90,57 @@ var lineC = payload.Line__c as String
 output application/java
 ---
 payload.Line__c as String]]></ee:set-variable>
+					<ee:set-variable variableName="inputPayload" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
 				</ee:variables>
 			</ee:transform>
 			<salesforce:query doc:name="Query" doc:id="ce4d6b75-89f9-4d89-a8f0-d23b9bd6cb70" config-ref="Salesforce_Config" target="salesforceId" >
 				<salesforce:salesforce-query ><![CDATA[#[vars.Id]]]></salesforce:salesforce-query>
 			</salesforce:query>
+			<ee:transform doc:name="Transform Message" doc:id="01ace8ef-73a4-4b05-b403-ac5eb948c2a8" >
+				<ee:message >
+					<ee:set-payload resource="dwl/compositeSfId.dwl" />
+				</ee:message>
+				<ee:variables >
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="salesorderCompositeSubFlow" doc:id="c6363a5d-f155-4715-ac7a-1356c1e0ceb7" name="salesorderCompositeSubFlow"/>
+			<ee:transform doc:name="sfID values" doc:id="fb1349aa-145d-455b-ac31-35a78e011e24">
+				<ee:message>
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="refAccId" ><![CDATA[%dw 2.0
+output application/json
+var refAccResponse = payload.compositeResponse filter ((item) -> item.referenceId contains "refAccount") default ""
+---
+
+refAccResponse.body[0].records
+]]></ee:set-variable>
+					<ee:set-variable variableName="refOrderId" ><![CDATA[%dw 2.0
+output application/json
+var refOrderResponse = payload.compositeResponse filter ((item) -> item.referenceId contains "refOrder") default ""
+---
+
+refOrderResponse.body[0].records
+]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
 			<ee:transform doc:name="composite Request" doc:id="0f889f47-8846-4cac-8a91-0f17f6be21db" >
 				<ee:message >
 					<ee:set-payload resource="dwl/salesCompositeRequest.dwl" />
 				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="sfIdDetails" ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-variable>
+				</ee:variables>
 			</ee:transform>
-			<salesforce-composite:execute-composite-request doc:name="Execute composite request" doc:id="f4b92276-d46d-4447-a186-4513f0776627" config-ref="Salesforce_Composite_Config" >
-				<reconnect />
-			</salesforce-composite:execute-composite-request>
+			<logger level="INFO" doc:name="compositeRequestLogger" doc:id="367effc4-a273-4cde-ba34-f0b71e8a8beb" message="compositeRequest:#[payload]"/>
+			<flow-ref doc:name="salesorderCompositeSubFlow" doc:id="dedfba2d-2fc9-497f-b6a0-07ba58119596" name="salesorderCompositeSubFlow"/>
 			<choice doc:name="Choice" doc:id="48e29fb5-b165-4091-afa4-41e52edeb67b" >
 				<when expression='#[isEmpty((payload.compositeResponse filter ((item) -&gt; item.referenceId contains "refUpdateSalesOrderDetails") default "").body..message[0])]' >
 					<ee:transform doc:name="Salesforce Response" doc:id="116c04fc-10aa-464c-8bbd-6d92f96c0f6f" >
@@ -127,4 +165,11 @@ else
 			</choice>
 		</foreach>
 	</flow>
+	<sub-flow name="salesorderCompositeSubFlow" doc:id="9d0f37ea-b1cb-4072-8f8d-5d9914550254" >
+		<logger level="INFO" doc:name="startLogger" doc:id="84eaafc1-2c93-4646-95ed-b1bbb98a0a7d" message="composite start log"/>
+		<salesforce-composite:execute-composite-request doc:name="Execute composite request" doc:id="b6efc9de-9483-4c51-83c5-b801b94429e6" config-ref="Salesforce_Composite_Config">
+			<reconnect />
+		</salesforce-composite:execute-composite-request>
+		<logger level="INFO" doc:name="endLogger" doc:id="ad5fd749-22ad-4caa-894b-071a48cac2da" message="composite end log"/>
+	</sub-flow>
 </mule>
