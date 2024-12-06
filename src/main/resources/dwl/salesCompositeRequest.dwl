@@ -71,7 +71,7 @@ var sfId = (vars.salesforceId)[0].Id
 	//"StandardOrder__c": if(!isEmpty(vars.inputPayload.StandardOrder__c))"@{refOrder.records[0].Id}" else "",
     "PO__c": vars.inputPayload.PO__c,
     "Product_Part__c": vars.inputPayload.Product_Part__c ,
-    //"Promise_Date__c": vars.inputPayload.Promise_Date__c,
+    "Promise_Date__c": vars.inputPayload.Promise_Date__c,
     "Status__c": vars.inputPayload.Status__c,
    
     "CurrencyIsoCode": vars.inputPayload.CurrencyIsoCode,
