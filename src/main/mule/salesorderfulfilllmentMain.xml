@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xml-module="http://www.mulesoft.org/schema/mule/xml-module" xmlns:salesforce-composite="http://www.mulesoft.org/schema/mule/salesforce-composite"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/salesforce-composite http://www.mulesoft.org/schema/mule/salesforce-composite/current/mule-salesforce-composite.xsd
+http://www.mulesoft.org/schema/mule/xml-module http://www.mulesoft.org/schema/mule/xml-module/current/mule-xml-module.xsd">
+	<flow name="sales_order_flow" doc:id="b11ca2f6-1918-4ebf-92e3-750e9f5f6942" >
+		<scheduler doc:name="Scheduler" doc:id="c8e69f58-c1c5-452e-b0c8-7669f9cf6751" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="30" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+		</scheduler>
+		<ee:transform doc:name="jobRun" doc:id="ed8a10d2-fe7f-4b5c-93c0-0d58642468cc">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="jobRun"><![CDATA[%dw 2.0
+import * from dw::core::Strings
+
+fun year(date) =
+  (date as Date).year
+
+fun dayOfyear(date) =
+  (date as Date).dayOfYear
+
+fun C_value(date) =
+  floor((year(date) - 1900) / 100)
+
+fun JulianDate(date) =
+  {
+    date: C_value(date) ++ (year(date) as String)[2 to 3] ++ leftPad(dayOfyear(date), 3, "0"),
+    time: (((date.hour / 24) + (date.minutes / 1440) + (date.seconds / 86400)) splitBy ".")[-1]
+  }
+output application/json  
+---
+JulianDate(now())]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<os:retrieve doc:id="6fc4f4c2-9ddf-4f29-9bbd-d42ecbe85864" key="previousJobRun" target="previousJobRun" doc:name="Retrieve :previousJobRun">
+			<os:default-value><![CDATA[#[vars.jobRun]]]></os:default-value>
+		</os:retrieve>
+		<flow-ref doc:name="SlaesOrderImplementationFlow" doc:id="8e6c5f07-ae7e-41dc-aaba-235a06a40913" name="SlaesOrderImplementationFlow" />
+		<os:store doc:id="20362e6d-0d13-4d26-b652-a7f594c07671" key="previousJobRun" doc:name="Store current job run details">
+			<os:value><![CDATA[#[vars.jobRun]]]></os:value>
+		</os:store>
+		<error-handler ref="global-error-handler" />
+	</flow>
+</mule>
