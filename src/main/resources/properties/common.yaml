@@ -6,12 +6,12 @@ log.level: "INFO"
 
 max:
   retries: "3"
-  frequency: "6000"
+  frequency: "30000"
   
 
 
 retry:
- frequency: "3000"
+ frequency: "30000"
  attempts: "3"
  
 timeout:

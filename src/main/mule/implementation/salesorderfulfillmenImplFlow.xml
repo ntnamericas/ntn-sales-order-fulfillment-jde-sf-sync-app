@@ -15,25 +15,12 @@ http://www.mulesoft.org/schema/mule/salesforce-composite http://www.mulesoft.org
 			</ee:message>
 		</ee:transform>
 		<ee:dynamic-evaluate doc:name="Dynamic Evaluate" doc:id="ca5ca086-917d-4ed6-b468-bfd74883566b" expression="#[payload]" />
-		<until-successful doc:name="Until Successful" doc:id="6d433655-aeb4-4a05-972c-a489370d7e13" maxRetries="#[Mule::p('max.retries')]" millisBetweenRetries="#[Mule::p('max.frequency')]">
+		<until-successful doc:name="Until Successful" doc:id="6d433655-aeb4-4a05-972c-a489370d7e13" maxRetries="#[Mule::p('retry.attempts')]" millisBetweenRetries="#[Mule::p('retry.frequency')]">
 			<db:select doc:name="execute sql query" doc:id="a8b76d0a-1ba3-471a-ad35-68b2d2aa2bf4" config-ref="jdeDatabase">
-			<db:sql><![CDATA[#[payload]]]></db:sql>
+			<reconnect count="${max.retries}" frequency="${max.frequency}"/>
+				<db:sql><![CDATA[#[payload]]]></db:sql>
 		</db:select>
 		</until-successful>
-		<ee:transform doc:name="capture db payload" doc:id="581a061a-8b23-4400-929a-27790a43101e" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
-output application/json 
----
-payload]]></ee:set-payload>
-			</ee:message>
-			<ee:variables >
-				<ee:set-variable variableName="emptyArray" ><![CDATA[%dw 2.0
-output application/json
----
-[]]]></ee:set-variable>
-			</ee:variables>
-		</ee:transform>
 		<ee:transform doc:name="salesforce payload" doc:id="effc0e48-a366-4b0a-b00b-f68e1bb5b44c" >
 			<ee:message >
 				<ee:set-payload resource="dwl/salesOrderDetails.dwl" />
@@ -43,7 +30,7 @@ output application/json
 			<when expression="#[sizeOf(payload)&gt;0]" >
 				<logger level="INFO" doc:name="salesforce payload logger" doc:id="3b7c1d10-5948-4026-b564-83362361f44a" message="#[payload]" />
 				<logger level="INFO" doc:name="Total Records Logger" doc:id="21c8a6fc-4f4a-4cba-aee0-21c2927c38a1" message="Total Records available: #[sizeOf(payload)]" />
-				<ee:transform doc:name="For Each Variable" doc:id="bf207293-f160-4137-84a8-07394669e680" >
+				<ee:transform doc:name="startdard order records" doc:id="bf207293-f160-4137-84a8-07394669e680" >
 					<ee:message >
 						<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
@@ -51,12 +38,6 @@ output application/json
 (payload) filter ((item, index) -> !isEmpty(item."StandardOrder__c") )]]></ee:set-payload>
 					</ee:message>
 					<ee:variables >
-						<ee:set-variable variableName="FEPayload" ><![CDATA[output application/json
----
-{
-   "salesOrderTotalSuccessRecords" : 0,
-   "salesOrderTotalFailureRecords" : 0
-}]]></ee:set-variable>
 					</ee:variables>
 				</ee:transform>
 				<logger level="INFO" doc:name="Distinct Records Logger" doc:id="dd6a27e8-f06e-4039-b745-63b6d5e3efa1" message="Records available with StandardOrder: #[sizeOf(payload)]" />
@@ -100,7 +81,8 @@ payload]]></ee:set-variable>
 				</ee:variables>
 			</ee:transform>
 			<salesforce:query doc:name="Query" doc:id="ce4d6b75-89f9-4d89-a8f0-d23b9bd6cb70" config-ref="Salesforce_Config" target="salesforceId">
-				<salesforce:salesforce-query><![CDATA[#[vars.Id]]]></salesforce:salesforce-query>
+				<reconnect frequency="${max.frequency}" count="${max.retries}"/>
+					<salesforce:salesforce-query><![CDATA[#[vars.Id]]]></salesforce:salesforce-query>
 			</salesforce:query>
 			<ee:transform doc:name="Transform Message" doc:id="01ace8ef-73a4-4b05-b403-ac5eb948c2a8">
 				<ee:message>
@@ -183,7 +165,7 @@ else
 	<sub-flow name="salesorderCompositeSubFlow" doc:id="9d0f37ea-b1cb-4072-8f8d-5d9914550254" >
 		<logger level="INFO" doc:name="startLogger" doc:id="84eaafc1-2c93-4646-95ed-b1bbb98a0a7d" message="composite start log"/>
 		<salesforce-composite:execute-composite-request doc:name="Execute composite request" doc:id="b6efc9de-9483-4c51-83c5-b801b94429e6" config-ref="Salesforce_Composite_Config">
-			<reconnect />
+			<reconnect frequency="${max.frequency}" count="${max.retries}"/>
 		</salesforce-composite:execute-composite-request>
 		<logger level="INFO" doc:name="endLogger" doc:id="ad5fd749-22ad-4caa-894b-071a48cac2da" message="composite end log"/>
 	</sub-flow>
