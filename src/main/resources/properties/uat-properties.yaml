@@ -10,6 +10,10 @@ salesforce:
   userName: "mulesoftintegration@ntnusa.com.stage"
   consumerKey: "3MVG90M53M443DSGxMju83GNEZS9BiRpKUui8cVi5kw733ps2DwQ9U6zeDmiwPhAb2vKQgm733j9BytSB4mSR"
 
+smtp:
+  user: "mulesoftsmtpuser@ntnusa.com"
+  host: "smtp.office365.com"
+  port: "25"
 
 database:
   host: "129.147.16.139"

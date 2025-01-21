@@ -13,17 +13,31 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/salesforce-composite http://www.mulesoft.org/schema/mule/salesforce-composite/current/mule-salesforce-composite.xsd">
 	<error-handler name="global-error-handler" doc:id="dbda4398-3caf-4074-b0aa-0e37fb5c80ef" >
-		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="23e5a881-d2bb-46f7-b754-c2bfd9762f57" type="ANY">
-			<ee:transform doc:name="error payload" doc:id="085855c0-6bb8-4b7d-a568-2ca80322328b" >
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="c6a7a640-c4af-4c63-897d-c231047e6180" type="SALESFORCE-COMPOSITE:CONNECTIVITY, SALESFORCE-COMPOSITE:RETRY_EXHAUSTED, DB:CONNECTIVITY, DB:RETRY_EXHAUSTED, CONNECTIVITY, RETRY_EXHAUSTED">
+			<ee:transform doc:name="email request" doc:id="8c6f7cce-0b49-407e-b8b6-e4ea34eb5d64">
+				<ee:message>
+					<ee:set-payload resource="dwl/technicalError.dwl" />
+				</ee:message>
+				<ee:variables />
+			</ee:transform>
+			<logger level="ERROR" doc:name="error response" doc:id="0c2752df-34f5-40ec-91ec-63279750c040" message="ConnectivityIssue: #[payload]" />
+			<email:send doc:id="3139f6b0-df5a-4513-963f-7e3585064cec" config-ref="Email_SMTP" fromAddress='#["mulesoftsmtpuser@ntnusa.com"]' subject="Connectivity Issue" doc:name="email send">
+				<reconnect frequency="${max.frequency}" count="${max.retries}" />
+				<email:to-addresses>
+					<email:to-address value='#["mulesoftsmtpuser@ntnusa.com"]' />
+				</email:to-addresses>
+			</email:send>
+			<logger level="INFO" doc:name="email response" doc:id="041fe40f-ecf7-4dd3-b2b3-8cdbe174bbd8" message="EmailResponse:#[payload]" />
+		</on-error-continue>
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="84ea1b08-8253-485e-b3b5-fb85e5948ee3" type="ANY" >
+			<ee:transform doc:name="error payload" doc:id="e949989b-af0c-4967-b7ed-8305544bdad5" >
 				<ee:message >
 					<ee:set-payload resource="dwl/technicalError.dwl" />
 				</ee:message>
-				<ee:variables >
-				</ee:variables>
+				<ee:variables />
 			</ee:transform>
-			<logger level="ERROR" doc:name="Logger" doc:id="44adf8d7-0ad9-4ebd-9e2b-5adadd4d2643" message="#[payload]"/>
-		
-</on-error-continue>
+			<logger level="ERROR" doc:name="error response" doc:id="e89ad1e3-323b-4458-9538-78b45b5ef16a" message="#[payload]" />
+		</on-error-continue>
 	
 </error-handler>
 
