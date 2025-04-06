@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce-composite="http://www.mulesoft.org/schema/mule/salesforce-composite" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/salesforce-composite http://www.mulesoft.org/schema/mule/salesforce-composite/current/mule-salesforce-composite.xsd">
+	<sub-flow name="SlaesOrderImplementationFlow" doc:id="de13cffd-baa4-4969-90f4-216868bb1f1c" >
+		<logger level="INFO" doc:name="Start Logger" doc:id="2df4cc7d-712f-4fbe-a587-c3d37f5de0d9" message='"Sales Order Fulfillment flow started"' />
+		<ee:transform doc:name="sql query" doc:id="af73bb2d-41cf-4f2d-bb15-d97b8ad3229d" >
+			<ee:message >
+				<ee:set-payload resource="dwl/salesOrderQuery.dwl" />
+			</ee:message>
+		</ee:transform>
+		<ee:dynamic-evaluate doc:name="Dynamic Evaluate" doc:id="ca5ca086-917d-4ed6-b468-bfd74883566b" expression="#[payload]" />
+		<until-successful doc:name="Until Successful" doc:id="6d433655-aeb4-4a05-972c-a489370d7e13" maxRetries="#[Mule::p('retry.attempts')]" millisBetweenRetries="#[Mule::p('retry.frequency')]">
+			<db:select doc:name="execute sql query" doc:id="a8b76d0a-1ba3-471a-ad35-68b2d2aa2bf4" config-ref="jdeDatabase">
+			<reconnect count="${max.retries}" frequency="${max.frequency}"/>
+				<db:sql><![CDATA[#[payload]]]></db:sql>
+		</db:select>
+		</until-successful>
+		<ee:transform doc:name="salesforce payload" doc:id="effc0e48-a366-4b0a-b00b-f68e1bb5b44c" >
+			<ee:message >
+				<ee:set-payload resource="dwl/salesOrderDetails.dwl" />
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="8c1b248a-de89-4f84-b08a-01d8326cf275" >
+			<when expression="#[sizeOf(payload)&gt;0]" >
+				<logger level="INFO" doc:name="salesforce payload logger" doc:id="3b7c1d10-5948-4026-b564-83362361f44a" message="#[payload]" />
+				<logger level="INFO" doc:name="Total Records Logger" doc:id="21c8a6fc-4f4a-4cba-aee0-21c2927c38a1" message="Total Records available: #[sizeOf(payload)]" />
+				<ee:transform doc:name="startdard order records" doc:id="bf207293-f160-4137-84a8-07394669e680" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+(payload) filter ((item, index) -> !isEmpty(item."StandardOrder__c") )]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+					</ee:variables>
+				</ee:transform>
+				<logger level="INFO" doc:name="Distinct Records Logger" doc:id="dd6a27e8-f06e-4039-b745-63b6d5e3efa1" message="Records available with StandardOrder: #[sizeOf(payload)]" />
+				<flow-ref doc:name="compositeRequestFlow" doc:id="9b2c4a3a-5a97-461b-8fbe-852a7c41a579" name="compositeRequestFlow" />
+				<ee:transform doc:name="Response Payload" doc:id="0364cc80-6557-458c-9807-d4133fee72d9" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+vars.FEPayload 
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="End Logger" doc:id="5fc27467-dd7e-441d-a819-f64a9525a387" message='#[{"sales order fulfillment details end flow" : vars.FEPayload }]' />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="no input" doc:id="566c9da2-a44f-4ca5-8d82-9d2d0c9f2222" message="no records are available to process" />
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<flow name="compositeRequestFlow" doc:id="01defa72-3567-4a9d-ab14-6d17a2152ef1" >
+		<try doc:name="Try" doc:id="c68ec9af-c2e6-4aa2-bfb0-5ef445d47baa" >
+			<foreach doc:name="For Each" doc:id="d3f1d16a-d92f-4d72-9154-fd134699e44e" collection="#[payload]">
+			<logger level="INFO" doc:name="Logger" doc:id="23a78d18-2123-4b68-803e-a5791737483f" message='#[{"message" : "before going to sf",&#10;"payload": payload&#10;}]' />
+			<ee:transform doc:name="Transform Message" doc:id="55061617-6a99-48c8-a196-924f31b28b03">
+				<ee:message />
+				<ee:variables>
+					<ee:set-variable variableName="Id"><![CDATA[%dw 2.0
+output application/json
+var lineC = payload.Line__c as String
+---
+"select id from Sales_Order_Fulfillment__c where Line__c = '$(lineC)'"]]></ee:set-variable>
+					<ee:set-variable variableName="Line__c"><![CDATA[%dw 2.0
+output application/java
+---
+payload.Line__c as String]]></ee:set-variable>
+					<ee:set-variable variableName="inputPayload"><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<salesforce:query doc:name="Query" doc:id="ce4d6b75-89f9-4d89-a8f0-d23b9bd6cb70" config-ref="Salesforce_Config" target="salesforceId">
+				<reconnect frequency="${max.frequency}" count="${max.retries}"/>
+					<salesforce:salesforce-query><![CDATA[#[vars.Id]]]></salesforce:salesforce-query>
+			</salesforce:query>
+			<ee:transform doc:name="Transform Message" doc:id="01ace8ef-73a4-4b05-b403-ac5eb948c2a8">
+				<ee:message>
+					<ee:set-payload resource="dwl/compositeSfId.dwl" />
+				</ee:message>
+				<ee:variables>
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="salesorderCompositeSubFlow" doc:id="c6363a5d-f155-4715-ac7a-1356c1e0ceb7" name="salesorderCompositeSubFlow" />
+			<ee:transform doc:name="sfID values" doc:id="fb1349aa-145d-455b-ac31-35a78e011e24">
+				<ee:message>
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="refAccId"><![CDATA[%dw 2.0
+output application/json
+var refAccResponse = payload.compositeResponse filter ((item) -> item.referenceId contains "refAccount") default ""
+---
+
+refAccResponse.body[0].records
+]]></ee:set-variable>
+					<ee:set-variable variableName="refOrderId"><![CDATA[%dw 2.0
+output application/json
+var refOrderResponse = payload.compositeResponse filter ((item) -> item.referenceId contains "refOrder") default ""
+---
+
+refOrderResponse.body[0].records
+]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<ee:transform doc:name="composite Request" doc:id="0f889f47-8846-4cac-8a91-0f17f6be21db">
+				<ee:message>
+					<ee:set-payload resource="dwl/salesCompositeRequest.dwl" />
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="sfIdDetails"><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<logger level="INFO" doc:name="compositeRequestLogger" doc:id="367effc4-a273-4cde-ba34-f0b71e8a8beb" message="compositeRequest:#[payload]" />
+			<flow-ref doc:name="salesorderCompositeSubFlow" doc:id="dedfba2d-2fc9-497f-b6a0-07ba58119596" name="salesorderCompositeSubFlow" />
+			<choice doc:name="Choice" doc:id="48e29fb5-b165-4091-afa4-41e52edeb67b">
+				<when expression='#[isEmpty((payload.compositeResponse filter ((item) -&gt; item.referenceId contains "refUpdateSalesOrderDetails") default "").body..message[0])]'>
+					<ee:transform doc:name="Salesforce Response" doc:id="116c04fc-10aa-464c-8bbd-6d92f96c0f6f">
+						<ee:message />
+						<ee:variables>
+							<ee:set-variable variableName="FEPayload"><![CDATA[%dw 2.0
+output application/json indent=false
+var salesOrderRef = payload.compositeResponse filter ((item) -> item.referenceId contains "refUpdateSalesOrderDetails") default ""
+---
+if(salesOrderRef[0].httpStatusCode == 204)
+("updated record succefully with Line___c: " ++ (vars.Line__c)) 
+else 
+("Created record succefully with Line___c: " ++ (vars.Line__c))
+]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+					<logger level="INFO" doc:name="sf response" doc:id="9e218071-e4b4-4766-8404-ca1f3a745063" message="Counter No: #[vars.counter] SFResponse : #[vars.FEPayload]" />
+				</when>
+				<otherwise>
+					<logger level="INFO" doc:name="sf response" doc:id="130b397f-dccb-4cf9-ac09-7a7d509b365a" message='#[{"message":"error while sending to SF","reason":(payload.compositeResponse filter ((item) -&gt; item.referenceId contains "refUpdateSalesOrderDetails") default "").body..message}]' />
+				</otherwise>
+			</choice>
+		</foreach>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="aeacf3e6-c649-4377-9838-4e92f65aa923" >
+					<ee:transform doc:name="error payload" doc:id="c5aae619-f091-4f74-8e25-1e3eb9fe17b1">
+						<ee:message>
+							<ee:set-payload resource="dwl/technicalError.dwl" />
+						</ee:message>
+						<ee:variables />
+					</ee:transform>
+					<logger level="INFO" doc:name="errorLogger" doc:id="c4b039ae-afe8-4364-99b9-c4f5307e1d30" message="#[payload]"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+	</flow>
+	<sub-flow name="salesorderCompositeSubFlow" doc:id="9d0f37ea-b1cb-4072-8f8d-5d9914550254" >
+		<logger level="INFO" doc:name="startLogger" doc:id="84eaafc1-2c93-4646-95ed-b1bbb98a0a7d" message="composite start log"/>
+		<salesforce-composite:execute-composite-request doc:name="Execute composite request" doc:id="b6efc9de-9483-4c51-83c5-b801b94429e6" config-ref="Salesforce_Composite_Config">
+			<reconnect frequency="${max.frequency}" count="${max.retries}"/>
+		</salesforce-composite:execute-composite-request>
+		<logger level="INFO" doc:name="endLogger" doc:id="ad5fd749-22ad-4caa-894b-071a48cac2da" message="composite end log"/>
+	</sub-flow>
+</mule>
