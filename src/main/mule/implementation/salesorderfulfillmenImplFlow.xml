@@ -30,7 +30,7 @@ http://www.mulesoft.org/schema/mule/salesforce-composite http://www.mulesoft.org
 			<when expression="#[sizeOf(payload)&gt;0]" >
 				<logger level="INFO" doc:name="salesforce payload logger" doc:id="3b7c1d10-5948-4026-b564-83362361f44a" message="#[payload]" />
 				<logger level="INFO" doc:name="Total Records Logger" doc:id="21c8a6fc-4f4a-4cba-aee0-21c2927c38a1" message="Total Records available: #[sizeOf(payload)]" />
-				<ee:transform doc:name="startdard order records" doc:id="bf207293-f160-4137-84a8-07394669e680" >
+				<ee:transform doc:name="starndard order records" doc:id="bf207293-f160-4137-84a8-07394669e680" >
 					<ee:message >
 						<ee:set-payload ><![CDATA[%dw 2.0
 output application/json

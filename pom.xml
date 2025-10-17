@@ -2,18 +2,18 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.mycompany</groupId>
-	<artifactId>salesorderfulfilllment</artifactId>
-	<version>1.1.0-rc3</version>
+	<groupId>com.ntn</groupId>
+	<artifactId>ntn-sales-order-fulfillment-jde-sf-sync-app</artifactId>
+	<version>1.1.0-rc4</version>
 	<packaging>mule-application</packaging>
 
-	<name>salesorderfulfilllment</name>
+	<name>ntn-sales-order-fulfillment-jde-sf-sync-app</name>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-		<app.runtime>4.5.1</app.runtime>
+		<app.runtime>4.9.1</app.runtime>
 		<mule.maven.plugin.version>4.3.0</mule.maven.plugin.version>
 		<munit.version>3.3.0</munit.version>
 	</properties>
@@ -30,7 +30,7 @@
 				<artifactId>mule-maven-plugin</artifactId>
 				<version>${mule.maven.plugin.version}</version>
 				<extensions>true</extensions>
-				<configuration>
+				<!-- <configuration>
 					<sharedLibraries>
 						<sharedLibrary>
 							<groupId>com.oracle.ojdbc</groupId>
@@ -38,7 +38,16 @@
 						</sharedLibrary>
 					</sharedLibraries>
 					<classifier>mule-application</classifier>
-				</configuration>
+				</configuration> -->
+				<configuration>
+			        <sharedLibraries>
+			            <sharedLibrary>
+			                <groupId>com.oracle.database.jdbc</groupId>
+			                <artifactId>ojdbc11</artifactId>
+			            </sharedLibrary>
+			        </sharedLibraries>
+			        <classifier>mule-application</classifier>
+			    </configuration>
 			</plugin>
 			<plugin>
 				<groupId>com.mulesoft.munit.tools</groupId>
@@ -145,6 +154,11 @@
 			<artifactId>mule-email-connector</artifactId>
 			<version>1.7.5</version>
 			<classifier>mule-plugin</classifier>
+		</dependency>
+		<dependency>
+		    <groupId>com.oracle.database.jdbc</groupId>
+		    <artifactId>ojdbc11</artifactId>
+		    <version>23.9.0.25.07</version>
 		</dependency>
 	</dependencies>
 
