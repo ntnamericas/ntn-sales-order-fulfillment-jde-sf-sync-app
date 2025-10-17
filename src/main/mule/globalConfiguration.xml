@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:salesforce-composite="http://www.mulesoft.org/schema/mule/salesforce-composite" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce-composite http://www.mulesoft.org/schema/mule/salesforce-composite/current/mule-salesforce-composite.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<salesforce-composite:composite-config name="Salesforce_Composite_Config" doc:name="Salesforce Composite Config" doc:id="26111785-28f9-4915-b15c-9239d7bc5892" >
+		<salesforce-composite:oauth-user-pass-connection consumerKey="${salesforce.consumerKey}" consumerSecret="${secure::salesforce.consumerSecret}" username="${salesforce.userName}" password="${secure::salesforce.password}" securityToken="${secure::salesforce.securityToken}" tokenEndpoint="${secure::salesforce.tokenUrl}" responseTimeout="10" connectionTimeout="2" responseTimeoutUnit="MINUTES" connectionTimeoutUnit="MINUTES">
+			<reconnection failsDeployment="true" >
+				<reconnect-forever />
+			</reconnection>
+		</salesforce-composite:oauth-user-pass-connection>
+		<expiration-policy maxIdleTime="10" timeUnit="MINUTES" />
+	</salesforce-composite:composite-config>
+	<os:object-store name="salesOrder_Object_store" doc:name="Object store" doc:id="131334b7-5d6a-4ba6-8d74-26e10eb6920d" config-ref="ObjectStore_Config"/>
+		<db:config name="jdeDatabase" doc:name="Database Config" doc:id="fabbd01c-5b78-4709-90bd-6c1daf370674" >
+		<db:oracle-connection host="${database.host}" user="${secure::database.userName}" password="${secure::database.password}" serviceName="${database.serviceName}" port="${database.port}"/>
+	</db:config>
+	<configuration-properties doc:name="commonProperties" doc:id="75f9df82-d54a-42f9-b0b5-13246dfcd8de" file="properties/common.yaml" />
+	<configuration-properties doc:name="envProperties" doc:id="1f2f5b8a-472b-447e-ab1e-0198425e8c35" file="properties/${mule.env}-properties.yaml" />
+	<secure-properties:config name="secureProperties" doc:name="Secure Properties Config" doc:id="2b48b48c-bbf1-4a34-854f-d21fba31afb3" file="properties/${mule.env}-secure-properties.yaml" key="${encrypt.key}">
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="aca37c7e-c417-4d0f-aa31-087c0d568ccc" >
+		<salesforce:oauth-user-pass-connection consumerKey="${salesforce.consumerKey}" consumerSecret="${secure::salesforce.consumerSecret}" username="${salesforce.userName}" password="${secure::salesforce.password}" securityToken="${secure::salesforce.securityToken}" tokenEndpoint="${secure::salesforce.tokenUrl}" />
+	</salesforce:sfdc-config>
+	<configuration doc:name="globalErrorHandling" doc:id="40d7f604-97fb-4e7a-98a5-c5e975751f4d" defaultErrorHandler-ref="global-error-handler" />
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="bbca3600-305e-49da-bcc4-8614091cfdd6" from="${smtp.user}">
+		<email:smtp-connection host="${smtp.host}" user="${smtp.user}" password="${secure::smtp.password}" port="${smtp.port}">
+			<email:properties >
+				<email:property key="mail.smtp.starttls.enable" value="true" />
+			</email:properties>
+		</email:smtp-connection>
+	</email:smtp-config>
+	<os:config name="ObjectStore_Config" doc:name="ObjectStore Config" doc:id="f74228e7-7908-4740-81ba-082e10ade646" />
+</mule>
